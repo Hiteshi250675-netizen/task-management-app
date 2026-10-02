@@ -1,0 +1,19 @@
+{
+  "name": "taskflow-app",
+  "version": "1.0.0",
+  "description": "Full-Stack Real-Time Task Management Application with SQLite and WebSockets",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "keywords": [
+    "task-management",
+    "kanban",
+    "websockets",
+    "sqlite",
+    "full-stack",
+    "javascript"
+  ],
+  "author": "Full-Stack Developer",
+  "license": "MIT"
+}

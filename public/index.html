@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TaskFlow &bull; Full-Stack Real-Time Task Management</title>
+  <meta name="description" content="A modern, responsive full-stack task management application with real-time WebSocket sync, SQLite database, and user authentication.">
+  
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%236366f1'><path d='M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z'/></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- ================= AUTH VIEW (Login / Register) ================= -->
+  <div id="authScreen" class="auth-screen hidden">
+    <div class="auth-card">
+      <div class="auth-brand">
+        <div class="brand-logo">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="9 11 12 14 22 4"></polyline>
+            <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+          </svg>
+        </div>
+        <h1>TaskFlow</h1>
+        <p class="auth-subtitle">Full-Stack Real-Time Task Management</p>
+      </div>
+
+      <div class="auth-tabs">
+        <button id="tabLogin" class="auth-tab active" type="button">Sign In</button>
+        <button id="tabRegister" class="auth-tab" type="button">Create Account</button>
+      </div>
+
+      <div id="authError" class="auth-error-banner hidden" role="alert"></div>
+
+      <!-- Login Form -->
+      <form id="loginForm" class="auth-form">
+        <div class="form-group">
+          <label for="loginEmail">Email Address</label>
+          <input type="email" id="loginEmail" required placeholder="alex@taskflow.com" autocomplete="email">
+        </div>
+        <div class="form-group">
+          <label for="loginPassword">Password</label>
+          <input type="password" id="loginPassword" required placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;" autocomplete="current-password">
+        </div>
+        <button type="submit" class="btn btn-primary btn-block">Sign In to Dashboard</button>
+      </form>
+
+      <!-- Register Form -->
+      <form id="registerForm" class="auth-form hidden">
+        <div class="form-group">
+          <label for="regName">Full Name</label>
+          <input type="text" id="regName" required placeholder="Alex Taylor" autocomplete="name">
+        </div>
+        <div class="form-group">
+          <label for="regEmail">Email Address</label>
+          <input type="email" id="regEmail" required placeholder="alex@taskflow.com" autocomplete="email">
+        </div>
+        <div class="form-group">
+          <label for="regPassword">Password (6+ chars)</label>
+          <input type="password" id="regPassword" required minlength="6" placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;" autocomplete="new-password">
+        </div>
+        <div class="form-group">
+          <label>Avatar Color</label>
+          <div class="color-picker-group">
+            <label class="color-choice"><input type="radio" name="avatarColor" value="#6366f1" checked><span style="background:#6366f1"></span></label>
+            <label class="color-choice"><input type="radio" name="avatarColor" value="#3b82f6"><span style="background:#3b82f6"></span></label>
+            <label class="color-choice"><input type="radio" name="avatarColor" value="#10b981"><span style="background:#10b981"></span></label>
+            <label class="color-choice"><input type="radio" name="avatarColor" value="#f59e0b"><span style="background:#f59e0b"></span></label>
+            <label class="color-choice"><input type="radio" name="avatarColor" value="#ec4899"><span style="background:#ec4899"></span></label>
+            <label class="color-choice"><input type="radio" name="avatarColor" value="#8b5cf6"><span style="background:#8b5cf6"></span></label>
+          </div>
+        </div>
+        <button type="submit" class="btn btn-primary btn-block">Create My Account</button>
+      </form>
+
+      <div class="auth-divider">
+        <span>OR QUICK ACCESS</span>
+      </div>
+
+      <button id="btnDemoLogin" type="button" class="btn btn-demo btn-block">
+        <span class="demo-sparkle">&starf;</span> Explore Demo Account (1-Click)
+      </button>
+
+      <div class="auth-features-footnote">
+        <span>&check; SQLite Database</span>
+        <span>&check; WebSockets Sync</span>
+        <span>&check; Password Hashing</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MAIN APP SHELL ================= -->
+  <div id="appContainer" class="app-layout">
+    
+    <!-- Top Navigation Bar -->
+    <header class="navbar">
+      <div class="navbar-left">
+        <button id="btnToggleSidebar" class="btn-icon mobile-only" aria-label="Toggle navigation menu">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+        </button>
+        <div class="app-brand">
+          <div class="brand-logo-small">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
+          </div>
+          <span class="brand-title">TaskFlow</span>
+        </div>
+        
+        <!-- Live WebSocket Indicator -->
+        <div id="wsBadge" class="ws-status-badge connecting" title="Real-time WebSocket Sync Status">
+          <span class="status-dot"></span>
+          <span class="status-label">Connecting</span>
+        </div>
+      </div>
+
+      <div class="navbar-center">
+        <div class="search-box">
+          <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+          <input type="text" id="globalSearchInput" placeholder="Search tasks by title, description (Ctrl+/)...">
+          <kbd class="shortcut-kbd">/</kbd>
+        </div>
+      </div>
+
+      <div class="navbar-right">
+        <!-- Architecture Guide button -->
+        <button id="btnOpenArchitecture" class="btn-ghost" title="Learn Full-Stack Architecture">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+          <span class="hide-mobile">Architecture</span>
+        </button>
+
+        <!-- Activity drawer button -->
+        <button id="btnOpenActivity" class="btn-icon" title="Recent Activity Feed">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+        </button>
+
+        <!-- Theme Toggle -->
+        <button id="btnToggleTheme" class="btn-icon" title="Toggle Dark/Light Mode">
+          <svg id="themeIconSun" class="theme-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+          <svg id="themeIconMoon" class="theme-icon hidden" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+        </button>
+
+        <!-- User Profile Dropdown -->
+        <div class="user-menu-container">
+          <button id="btnUserMenu" class="user-avatar-btn" aria-haspopup="true" aria-expanded="false">
+            <span id="userAvatarText" class="user-avatar-circle">AT</span>
+            <span id="userDisplayName" class="user-name-label hide-mobile">Alex Taylor</span>
+          </button>
+          <div id="userDropdown" class="user-dropdown-menu hidden">
+            <div class="user-dropdown-header">
+              <strong id="dropdownUserName">Alex Taylor</strong>
+              <small id="dropdownUserEmail">demo@taskflow.com</small>
+            </div>
+            <hr>
+            <button id="btnLogout" class="dropdown-item text-danger">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+              Sign Out
+            </button>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <div class="app-body">
+      <!-- Sidebar Navigation -->
+      <aside id="appSidebar" class="sidebar">
+        <button id="btnNewTask" class="btn btn-primary btn-new-task">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+          <span>Create New Task</span>
+        </button>
+
+        <nav class="sidebar-nav">
+          <div class="nav-section-title">Views</div>
+          <button class="nav-item active" data-view="dashboard">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+            <span>Overview & Stats</span>
+          </button>
+          <button class="nav-item" data-view="board">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="5" height="18" rx="1"></rect><rect x="10" y="3" width="5" height="12" rx="1"></rect><rect x="17" y="3" width="5" height="15" rx="1"></rect></svg>
+            <span>Kanban Board</span>
+          </button>
+          <button class="nav-item" data-view="list">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
+            <span>Task List</span>
+          </button>
+
+          <div class="nav-section-title">Timeframe Filters</div>
+          <button class="nav-filter-item active" data-filter-status="all">
+            <span class="filter-dot dot-all"></span> All Tasks <span id="countAll" class="badge-count">0</span>
+          </button>
+          <button class="nav-filter-item" data-filter-status="today">
+            <span class="filter-dot dot-today"></span> Due Today <span id="countToday" class="badge-count">0</span>
+          </button>
+          <button class="nav-filter-item" data-filter-status="overdue">
+            <span class="filter-dot dot-overdue"></span> Overdue <span id="countOverdue" class="badge-count">0</span>
+          </button>
+          <button class="nav-filter-item" data-filter-status="completed">
+            <span class="filter-dot dot-completed"></span> Completed <span id="countCompleted" class="badge-count">0</span>
+          </button>
+
+          <div class="nav-section-title">Categories</div>
+          <div class="category-filters-list">
+            <button class="cat-pill active" data-filter-category="all">All</button>
+            <button class="cat-pill" data-filter-category="Work">Work</button>
+            <button class="cat-pill" data-filter-category="Personal">Personal</button>
+            <button class="cat-pill" data-filter-category="Projects">Projects</button>
+            <button class="cat-pill" data-filter-category="Study">Study</button>
+            <button class="cat-pill" data-filter-category="Health">Health</button>
+          </div>
+
+          <div class="nav-section-title">Priority</div>
+          <div class="priority-filters-list">
+            <button class="prio-pill active" data-filter-priority="all">All</button>
+            <button class="prio-pill prio-urgent" data-filter-priority="Urgent">Urgent</button>
+            <button class="prio-pill prio-high" data-filter-priority="High">High</button>
+            <button class="prio-pill prio-medium" data-filter-priority="Medium">Medium</button>
+            <button class="prio-pill prio-low" data-filter-priority="Low">Low</button>
+          </div>
+        </nav>
+
+        <div class="sidebar-footer">
+          <div class="system-status-indicator">
+            <span class="engine-badge">Node.js + SQLite</span>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Main Dashboard / Workspace Content Area -->
+      <main class="main-content">
+
+        <!-- ================= TOP STATS & PROGRESS TRACKER (TaskBuddy Feature) ================= -->
+        <section class="progress-hero-section">
+          <!-- Circular Progress Widget -->
+          <div class="progress-widget-card">
+            <div class="circle-progress-wrapper">
+              <svg class="progress-ring" width="104" height="104">
+                <circle class="progress-ring-bg" stroke-width="8" cx="52" cy="52" r="44"></circle>
+                <circle id="progressRingBar" class="progress-ring-fill" stroke-width="8" cx="52" cy="52" r="44"></circle>
+              </svg>
+              <div class="progress-ring-label">
+                <span id="progressPercentText" class="progress-value">0%</span>
+                <span class="progress-sub">Done</span>
+              </div>
+            </div>
+            <div class="progress-details">
+              <h3>Task Completion</h3>
+              <p id="progressSummaryText">You're making great progress today!</p>
+              <div class="progress-linear-bar">
+                <div id="progressLinearFill" class="progress-linear-fill" style="width: 0%;"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Quick Metrics Grid -->
+          <div class="metrics-grid">
+            <div class="metric-card">
+              <div class="metric-icon icon-total">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+              </div>
+              <div class="metric-data">
+                <span id="statTotalTasks" class="metric-number">0</span>
+                <span class="metric-title">Total Tasks</span>
+              </div>
+            </div>
+
+            <div class="metric-card">
+              <div class="metric-icon icon-progress">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+              </div>
+              <div class="metric-data">
+                <span id="statInProgress" class="metric-number">0</span>
+                <span class="metric-title">In Progress</span>
+              </div>
+            </div>
+
+            <div class="metric-card">
+              <div class="metric-icon icon-completed">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+              </div>
+              <div class="metric-data">
+                <span id="statCompleted" class="metric-number">0</span>
+                <span class="metric-title">Completed</span>
+              </div>
+            </div>
+
+            <div class="metric-card">
+              <div class="metric-icon icon-overdue">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+              </div>
+              <div class="metric-data">
+                <span id="statOverdue" class="metric-number">0</span>
+                <span class="metric-title">Overdue</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================= RAPID TASK ADD BAR ================= -->
+        <section class="quick-add-section">
+          <form id="quickAddForm" class="quick-add-form">
+            <div class="quick-add-input-wrapper">
+              <span class="plus-icon">+</span>
+              <input type="text" id="quickTaskTitle" placeholder="Add a new task rapidly... (press Enter to create)" required>
+            </div>
+            <select id="quickTaskCategory" class="quick-select">
+              <option value="Work">💼 Work</option>
+              <option value="Personal">🏡 Personal</option>
+              <option value="Projects" selected>🚀 Projects</option>
+              <option value="Study">📚 Study</option>
+              <option value="Health">🏃 Health</option>
+            </select>
+            <select id="quickTaskPriority" class="quick-select">
+              <option value="Low">🟢 Low</option>
+              <option value="Medium" selected>🟡 Medium</option>
+              <option value="High">🟠 High</option>
+              <option value="Urgent">🔴 Urgent</option>
+            </select>
+            <button type="submit" class="btn btn-primary btn-sm">Add Task</button>
+          </form>
+        </section>
+
+        <!-- ================= WORKSPACE CONTROLS & VIEWS ================= -->
+        <div class="view-controls-bar">
+          <div class="view-switch-tabs">
+            <button id="viewTabBoard" class="view-tab-btn active">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="5" height="18" rx="1"></rect><rect x="10" y="3" width="5" height="12" rx="1"></rect><rect x="17" y="3" width="5" height="15" rx="1"></rect></svg>
+              Kanban Board
+            </button>
+            <button id="viewTabList" class="view-tab-btn">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
+              List View
+            </button>
+          </div>
+
+          <div class="view-actions">
+            <div class="sort-selector">
+              <label for="sortBySelect">Sort by:</label>
+              <select id="sortBySelect">
+                <option value="due_date">Due Date</option>
+                <option value="priority">Priority</option>
+                <option value="created_at">Date Created</option>
+                <option value="title">Title (A-Z)</option>
+              </select>
+            </div>
+
+            <button id="btnClearCompleted" class="btn-ghost btn-sm text-muted" title="Remove all completed tasks">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+              Clear Completed
+            </button>
+          </div>
+        </div>
+
+        <!-- ================= KANBAN BOARD CONTAINER ================= -->
+        <section id="kanbanBoardView" class="kanban-board">
+          <!-- Column 1: To Do -->
+          <div class="kanban-column" data-status="todo">
+            <div class="column-header">
+              <div class="col-title-wrap">
+                <span class="col-indicator col-todo"></span>
+                <h3>To Do</h3>
+                <span id="countColTodo" class="col-badge">0</span>
+              </div>
+              <button class="btn-icon-sm btn-add-in-col" data-status="todo" title="Add task to this column">+</button>
+            </div>
+            <div class="column-dropzone" id="dropzoneTodo">
+              <!-- Task cards injected here -->
+            </div>
+          </div>
+
+          <!-- Column 2: In Progress -->
+          <div class="kanban-column" data-status="in_progress">
+            <div class="column-header">
+              <div class="col-title-wrap">
+                <span class="col-indicator col-in-progress"></span>
+                <h3>In Progress</h3>
+                <span id="countColInProgress" class="col-badge">0</span>
+              </div>
+              <button class="btn-icon-sm btn-add-in-col" data-status="in_progress" title="Add task to this column">+</button>
+            </div>
+            <div class="column-dropzone" id="dropzoneInProgress">
+              <!-- Task cards injected here -->
+            </div>
+          </div>
+
+          <!-- Column 3: In Review -->
+          <div class="kanban-column" data-status="review">
+            <div class="column-header">
+              <div class="col-title-wrap">
+                <span class="col-indicator col-review"></span>
+                <h3>Under Review</h3>
+                <span id="countColReview" class="col-badge">0</span>
+              </div>
+              <button class="btn-icon-sm btn-add-in-col" data-status="review" title="Add task to this column">+</button>
+            </div>
+            <div class="column-dropzone" id="dropzoneReview">
+              <!-- Task cards injected here -->
+            </div>
+          </div>
+
+          <!-- Column 4: Completed -->
+          <div class="kanban-column" data-status="completed">
+            <div class="column-header">
+              <div class="col-title-wrap">
+                <span class="col-indicator col-completed"></span>
+                <h3>Completed</h3>
+                <span id="countColCompleted" class="col-badge">0</span>
+              </div>
+              <button class="btn-icon-sm btn-add-in-col" data-status="completed" title="Add task to this column">+</button>
+            </div>
+            <div class="column-dropzone" id="dropzoneCompleted">
+              <!-- Task cards injected here -->
+            </div>
+          </div>
+        </section>
+
+        <!-- ================= LIST VIEW CONTAINER ================= -->
+        <section id="taskListView" class="task-list-view hidden">
+          <div class="list-table-container">
+            <div class="list-table-header">
+              <span class="th-status">Status</span>
+              <span class="th-title">Task Details</span>
+              <span class="th-category">Category</span>
+              <span class="th-priority">Priority</span>
+              <span class="th-due">Due Date</span>
+              <span class="th-subtasks">Checklist</span>
+              <span class="th-actions">Actions</span>
+            </div>
+            <div id="taskListItems" class="list-table-body">
+              <!-- List items injected here -->
+            </div>
+          </div>
+        </section>
+
+        <!-- Empty state placeholder -->
+        <div id="emptyTasksState" class="empty-state hidden">
+          <div class="empty-state-icon">📝</div>
+          <h3>No tasks found</h3>
+          <p>No tasks match your current filter or search criteria. Create one to get started!</p>
+          <button id="btnEmptyCreate" class="btn btn-primary">+ Create New Task</button>
+        </div>
+
+      </main>
+    </div>
+  </div>
+
+  <!-- ================= TASK EDIT / CREATE DIALOG MODAL ================= -->
+  <dialog id="taskModal" class="app-dialog">
+    <div class="dialog-content">
+      <div class="dialog-header">
+        <h2 id="taskModalTitle">Create New Task</h2>
+        <button id="btnCloseModal" class="btn-icon" aria-label="Close dialog">&times;</button>
+      </div>
+
+      <form id="taskModalForm" class="dialog-form">
+        <input type="hidden" id="modalTaskId">
+
+        <div class="form-group">
+          <label for="modalTaskTitle">Task Title *</label>
+          <input type="text" id="modalTaskTitle" required placeholder="What needs to be achieved?">
+        </div>
+
+        <div class="form-group">
+          <label for="modalTaskDescription">Description & Notes</label>
+          <textarea id="modalTaskDescription" rows="3" placeholder="Provide extra details, context, or links..."></textarea>
+        </div>
+
+        <div class="form-row-3">
+          <div class="form-group">
+            <label for="modalTaskCategory">Category</label>
+            <select id="modalTaskCategory">
+              <option value="Work">💼 Work</option>
+              <option value="Personal">🏡 Personal</option>
+              <option value="Projects">🚀 Projects</option>
+              <option value="Study">📚 Study</option>
+              <option value="Health">🏃 Health</option>
+              <option value="General">📌 General</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="modalTaskPriority">Priority</label>
+            <select id="modalTaskPriority">
+              <option value="Low">Low</option>
+              <option value="Medium" selected>Medium</option>
+              <option value="High">High</option>
+              <option value="Urgent">Urgent</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="modalTaskStatus">Status</label>
+            <select id="modalTaskStatus">
+              <option value="todo">To Do</option>
+              <option value="in_progress">In Progress</option>
+              <option value="review">Under Review</option>
+              <option value="completed">Completed</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="modalTaskDueDate">Due Date</label>
+          <input type="date" id="modalTaskDueDate">
+        </div>
+
+        <!-- Dynamic Subtasks Checklist -->
+        <div class="form-group subtasks-group">
+          <label>Checklist / Subtasks</label>
+          <div id="modalSubtasksList" class="modal-subtasks-list">
+            <!-- Dynamic checklist items -->
+          </div>
+          <div class="add-subtask-bar">
+            <input type="text" id="modalNewSubtaskInput" placeholder="Add subtask step...">
+            <button type="button" id="btnAddSubtaskBtn" class="btn btn-secondary btn-sm">+ Add</button>
+          </div>
+        </div>
+
+        <div class="dialog-footer">
+          <button type="button" id="btnCancelModal" class="btn btn-ghost">Cancel</button>
+          <button type="submit" id="btnSaveTask" class="btn btn-primary">Save Task</button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+
+  <!-- ================= ACTIVITY LOG DRAWER ================= -->
+  <aside id="activityDrawer" class="drawer-panel hidden">
+    <div class="drawer-header">
+      <div class="drawer-title">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+        <h3>Live Activity Feed</h3>
+      </div>
+      <button id="btnCloseActivity" class="btn-icon">&times;</button>
+    </div>
+    <div class="drawer-content">
+      <div id="activityLogList" class="activity-feed">
+        <!-- Activity items rendered here -->
+      </div>
+    </div>
+  </aside>
+
+  <!-- ================= ARCHITECTURE & LEARNING MODAL ================= -->
+  <dialog id="architectureModal" class="app-dialog modal-large">
+    <div class="dialog-content">
+      <div class="dialog-header">
+        <h2>Full-Stack System Architecture & Learning Guide</h2>
+        <button id="btnCloseArchModal" class="btn-icon">&times;</button>
+      </div>
+      <div class="dialog-scroll-body">
+        <div class="arch-overview">
+          <p>This full-stack application fulfills all modern engineering requirements: <strong>Persistent Database Storage</strong>, <strong>User Authentication</strong>, <strong>REST API Architecture</strong>, and <strong>Real-Time Bidirectional WebSocket Synchronization</strong>.</p>
+        </div>
+
+        <div class="arch-grid">
+          <div class="arch-card">
+            <div class="arch-card-icon">⚡</div>
+            <h4>1. REST API Layer</h4>
+            <p>Built with Node.js HTTP server. Serves standard CRUD endpoints (<code>/api/tasks</code>, <code>/api/auth</code>) using JSON payloads and HTTP status codes.</p>
+          </div>
+          <div class="arch-card">
+            <div class="arch-card-icon">🔒</div>
+            <h4>2. Auth & Sessions</h4>
+            <p>Password hashing via PBKDF2 with SHA-512 and cryptographic salt. Bearer tokens verified on protected API routes.</p>
+          </div>
+          <div class="arch-card">
+            <div class="arch-card-icon">🗄️</div>
+            <h4>3. SQLite Persistence</h4>
+            <p>Uses <code>node:sqlite</code> with WAL journal mode. Relational schema with Foreign Keys and cascade deletions.</p>
+          </div>
+          <div class="arch-card">
+            <div class="arch-card-icon">📡</div>
+            <h4>4. Real-Time WebSockets</h4>
+            <p>RFC 6455 framing and upgrade handshake. Any task update in one tab instantly broadcasts to other connected tabs.</p>
+          </div>
+        </div>
+
+        <div class="arch-endpoints-table">
+          <h4>Key API Endpoints</h4>
+          <table>
+            <thead>
+              <tr><th>Method</th><th>Endpoint</th><th>Description</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><code>POST</code></td><td><code>/api/auth/login</code></td><td>Authenticate and generate session token</td></tr>
+              <tr><td><code>GET</code></td><td><code>/api/tasks</code></td><td>Query tasks with filters (status, category, search)</td></tr>
+              <tr><td><code>POST</code></td><td><code>/api/tasks</code></td><td>Create task + broadcast WebSocket event</td></tr>
+              <tr><td><code>PUT</code></td><td><code>/api/tasks/:id</code></td><td>Update full task fields & subtasks</td></tr>
+              <tr><td><code>PATCH</code></td><td><code>/api/tasks/:id/status</code></td><td>Kanban drag-and-drop status update</td></tr>
+              <tr><td><code>DELETE</code></td><td><code>/api/tasks/:id</code></td><td>Delete task with instant sync</td></tr>
+              <tr><td><code>WS</code></td><td><code>/ws?token=...</code></td><td>Bidirectional WebSocket channel</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="dialog-footer">
+        <button id="btnCloseArchModalBtn" class="btn btn-primary">Got it!</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- ================= TOAST NOTIFICATION CONTAINER ================= -->
+  <div id="toastContainer" class="toast-container" aria-live="polite"></div>
+
+  <!-- Scripts -->
+  <script src="js/api.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
